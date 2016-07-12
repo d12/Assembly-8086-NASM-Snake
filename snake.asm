@@ -4,6 +4,8 @@
 section .bss
   x_coord   RESW 4 ; [x_coord] is the head, [x_coord+2] is the next cell, etc.
   y_coord   RESW 4 ; Same here
+  t1        RESB 2
+  t2        RESB 2
 
 section  .text
   global_start 
@@ -30,6 +32,8 @@ SetInitialCoords:
   MOV [y_coord+4], AX
   MOV [x_coord+6], AX
   MOV [y_coord+6], AX
+  MOV [t1]       , AX
+  MOV [t2]       , AX
   RET
 
 ListenForInput:  ;Repeatedly check for keyboard input, print if available
@@ -81,6 +85,8 @@ InterpretKeypress:
   INC AX
  
   .after_control_handle
+  MOV [t1], AX
+  MOV [t2], BX
   CALL ShiftArray
   CALL DrawSnake
   RET
@@ -88,39 +94,29 @@ InterpretKeypress:
 DrawSnake:
   MOV AL, 0x0A ; Color
  
-  MOV DX, [x_coord]
-  MOV CX, [y_coord]
-  CMP CX, 0x00
-  JE .skip
+  MOV CX, [x_coord]
+  MOV DX, [y_coord]
   CALL DrawPixel
 
   MOV AL, 0x0F
-  MOV DX, [x_coord+2]
-  MOV CX, [y_coord+2]
-  CMP CX, 0x00
-  JE .skip
+  MOV CX, [x_coord+2]
+  MOV DX, [y_coord+2]
   CALL DrawPixel
 
   MOV AL, 0x0C
-  MOV DX, [x_coord+4]
-  MOV CX, [y_coord+4]
-  CMP CX, 0x00
-  JE .skip
+  MOV CX, [x_coord+4]
+  MOV DX, [y_coord+4]
   CALL DrawPixel
 
   MOV AL, 0x0E
-  MOV DX, [x_coord+6]
-  MOV CX, [y_coord+6]
-  CMP CX, 0x00
-  JE .skip
+  MOV CX, [x_coord+6]
+  MOV DX, [y_coord+6]
   CALL DrawPixel
-
-  .skip
   RET
 
 ShiftArray:
-  MOV DX, [x_coord+6]
-  MOV CX, [y_coord+6]
+  MOV CX, [x_coord+6]
+  MOV DX, [y_coord+6]
   MOV AL, 0x00
   CALL DrawPixel ;Erase last pixel
 
@@ -130,7 +126,8 @@ ShiftArray:
   MOV [x_coord+4], DX
   MOV DX, [x_coord]
   MOV [x_coord+2], DX
-  MOV [x_coord], AX
+  MOV DX, [t1]
+  MOV [x_coord], DX
 
   MOV DX, [y_coord+4]
   MOV [y_coord+6], DX
@@ -138,7 +135,9 @@ ShiftArray:
   MOV [y_coord+4], DX
   MOV DX, [y_coord]
   MOV [y_coord+2], DX
-  MOV [y_coord], BX
+  MOV DX, [t2]
+  MOV [y_coord], DX
+  RET
 
 DrawPixel:
   MOV AH, 0x0C     ; Draw mode
@@ -151,6 +150,7 @@ Debug:
   MOV CX, 0x00
   MOV DX, 0x00
   CALL DrawPixel
+  RET
 
 TIMES 510 - ($ - $$) db 0  ;Fill the rest of sector with 0
 DW 0xAA55      ;Add boot signature at the end of bootloader
