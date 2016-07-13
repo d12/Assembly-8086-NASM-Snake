@@ -1,4 +1,4 @@
-; Snake!
+;Snake!
 [BITS 16]
 
 section .bss
@@ -6,6 +6,8 @@ section .bss
   y_coord   RESW 4 ; Same here
   t1        RESB 2
   t2        RESB 2
+  enabled   RESB 2
+  clr_h     RESB 2
 
 section  .text
   global_start 
@@ -13,6 +15,8 @@ section  .text
 _start:
   CALL SetVideoMode
   CALL SetInitialCoords
+  CALL ClearScreen
+  CALL Debug
   CALL ListenForInput
 
 SetVideoMode:
@@ -20,6 +24,26 @@ SetVideoMode:
   MOV AL, 0x13
   INT 0x10
   RET
+
+ClearScreen:
+  MOV CX, 0x00
+  MOV DX, 0x00
+  MOV AL, 0x0F
+  MOV BH, 0x00
+  MOV AH, 0x0C
+  .x_loop_begin
+   MOV CX, 0x00
+   .y_loop_begin
+    INT 0x10
+    INC CX
+    CMP CX, 0xFF
+    JNAE .y_loop_begin
+   .y_loop_end
+   INC DX
+   CMP DX, 0x50
+   JNAE .x_loop_begin
+  .x_loop_end
+  RET 
 
 SetInitialCoords:
   MOV AX, 0x0F ; Initial x/y coord
@@ -34,6 +58,8 @@ SetInitialCoords:
   MOV [y_coord+6], AX
   MOV [t1]       , AX
   MOV [t2]       , AX
+  MOV AX, 0x01
+  MOV [enabled]  , AX
   RET
 
 ListenForInput:  ;Repeatedly check for keyboard input, print if available
@@ -92,34 +118,39 @@ InterpretKeypress:
   RET
 
 DrawSnake:
+  CALL ClearScreen
   MOV AL, 0x0A ; Color
  
   MOV CX, [x_coord]
   MOV DX, [y_coord]
   CALL DrawPixel
 
+  MOV CX, 0x01
+  CMP [enabled], CX
+  JBE .skip
   MOV AL, 0x0F
   MOV CX, [x_coord+2]
   MOV DX, [y_coord+2]
   CALL DrawPixel
 
+  MOV CX, 0x02
+  CMP [enabled], CX
+  JBE .skip
   MOV AL, 0x0C
   MOV CX, [x_coord+4]
   MOV DX, [y_coord+4]
   CALL DrawPixel
 
+  MOV CX, 0x03
+  CMP [enabled], CX
   MOV AL, 0x0E
   MOV CX, [x_coord+6]
   MOV DX, [y_coord+6]
   CALL DrawPixel
+  .skip
   RET
 
 ShiftArray:
-  MOV CX, [x_coord+6]
-  MOV DX, [y_coord+6]
-  MOV AL, 0x00
-  CALL DrawPixel ;Erase last pixel
-
   MOV DX, [x_coord+4]
   MOV [x_coord+6], DX
   MOV DX, [x_coord+2]
