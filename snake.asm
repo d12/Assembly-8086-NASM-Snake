@@ -1,13 +1,15 @@
 ;Snake!
 [BITS 16]
 
+TOTAL_SEGMENTS equ 4
+
 section .bss
   x_coord   RESW 4 ; [x_coord] is the head, [x_coord+2] is the next cell, etc.
   y_coord   RESW 4 ; Same here
   t1        RESB 2
   t2        RESB 2
   enabled   RESB 2
-  clr_h     RESB 2
+  
 
 section  .text
   global_start 
@@ -28,7 +30,7 @@ SetVideoMode:
 ClearScreen:
   MOV CX, 0x00
   MOV DX, 0x00
-  MOV AL, 0x0F
+  MOV AL, 0x00
   MOV BH, 0x00
   MOV AH, 0x0C
   .x_loop_begin
@@ -36,11 +38,11 @@ ClearScreen:
    .y_loop_begin
     INT 0x10
     INC CX
-    CMP CX, 0xFF
+    CMP CX, 0x140
     JNAE .y_loop_begin
    .y_loop_end
    INC DX
-   CMP DX, 0x50
+   CMP DX, 0xFF
    JNAE .x_loop_begin
   .x_loop_end
   RET 
@@ -49,16 +51,16 @@ SetInitialCoords:
   MOV AX, 0x0F ; Initial x/y coord
   MOV [x_coord], AX
   MOV [y_coord], AX
-  MOV AX, 0x00
   MOV [x_coord+2], AX
   MOV [y_coord+2], AX
   MOV [x_coord+4], AX
   MOV [y_coord+4], AX
   MOV [x_coord+6], AX
   MOV [y_coord+6], AX
+  MOV AX, 0x00
   MOV [t1]       , AX
   MOV [t2]       , AX
-  MOV AX, 0x01
+  MOV AX, 0x04
   MOV [enabled]  , AX
   RET
 
@@ -85,6 +87,7 @@ InterpretKeypress:
   CMP AL, 0x64
   JE .d_pressed
   CALL Debug
+
   RET ; Invalid keypress, start listening again
 
   .w_pressed
