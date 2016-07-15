@@ -1,7 +1,7 @@
 ;Snake!
 [BITS 16]
 
-TOTAL_SEGMENTS equ 4
+TOTAL_SEGMENTS equ 0x04
 
 section .bss
   x_coord   RESW 4 ; [x_coord] is the head, [x_coord+2] is the next cell, etc.
@@ -49,14 +49,17 @@ ClearScreen:
 
 SetInitialCoords:
   MOV AX, 0x0F ; Initial x/y coord
-  MOV [x_coord], AX
-  MOV [y_coord], AX
-  MOV [x_coord+2], AX
-  MOV [y_coord+2], AX
-  MOV [x_coord+4], AX
-  MOV [y_coord+4], AX
-  MOV [x_coord+6], AX
-  MOV [y_coord+6], AX
+  MOV BX, 0x00
+  MOV DX, TOTAL_SEGMENTS
+  ADD DX, DX
+
+  .initialize_loop_begin
+   MOV [x_coord+BX], AX
+   MOV [y_coord+BX], AX
+   ADD BX, 0x02
+   CMP BX, DX
+   JNE .initialize_loop_begin
+  
   MOV AX, 0x00
   MOV [t1]       , AX
   MOV [t2]       , AX
@@ -122,34 +125,21 @@ InterpretKeypress:
 
 DrawSnake:
   CALL ClearScreen
-  MOV AL, 0x0A ; Color
- 
-  MOV CX, [x_coord]
-  MOV DX, [y_coord]
-  CALL DrawPixel
-
-  MOV CX, 0x01
-  CMP [enabled], CX
-  JBE .skip
-  MOV AL, 0x0F
-  MOV CX, [x_coord+2]
-  MOV DX, [y_coord+2]
-  CALL DrawPixel
-
-  MOV CX, 0x02
-  CMP [enabled], CX
-  JBE .skip
-  MOV AL, 0x0C
-  MOV CX, [x_coord+4]
-  MOV DX, [y_coord+4]
-  CALL DrawPixel
-
-  MOV CX, 0x03
-  CMP [enabled], CX
-  MOV AL, 0x0E
-  MOV CX, [x_coord+6]
-  MOV DX, [y_coord+6]
-  CALL DrawPixel
+  MOV BX, 0x00
+  MOV AL, 0x0A
+  MOV [t1], BX
+  .draw_snake_loop_begin
+   CMP [enabled], BX
+   JBE .skip
+   MOV [t1], BX
+   ADD BX, BX
+   MOV CX, [x_coord+BX]
+   MOV DX, [y_coord+BX]
+   CALL DrawPixel
+   MOV BX, [t1]
+   INC BX
+   JMP .draw_snake_loop_begin
+  
   .skip
   RET
 
