@@ -1,14 +1,16 @@
 ;Snake!
 [BITS 16]
 
-TOTAL_SEGMENTS equ 0x04
+TOTAL_SEGMENTS equ 0x09
 
 section .bss
-  x_coord   RESW 4 ; [x_coord] is the head, [x_coord+2] is the next cell, etc.
-  y_coord   RESW 4 ; Same here
+  x_coord   RESW 9 ; [x_coord] is the head, [x_coord+2] is the next cell, etc.
+  y_coord   RESW 9 ; Same here
   t1        RESB 2
   t2        RESB 2
   enabled   RESB 2
+  x_apple   RESB 2
+  y_apple   RESB 2
   
 
 section  .text
@@ -63,8 +65,13 @@ SetInitialCoords:
   MOV AX, 0x00
   MOV [t1]       , AX
   MOV [t2]       , AX
-  MOV AX, 0x04
+  MOV AX, TOTAL_SEGMENTS
   MOV [enabled]  , AX
+
+  CALL RandomNumber
+  MOV [x_apple], AX
+  CALL RandomNumber
+  MOV [y_apple], AX
   RET
 
 ListenForInput:  ;Repeatedly check for keyboard input, print if available
@@ -121,6 +128,14 @@ InterpretKeypress:
   MOV [t2], BX
   CALL ShiftArray
   CALL DrawSnake
+  CALL DrawApple
+  RET
+
+DrawApple:
+  MOV CX, [x_apple]
+  MOV DX, [y_apple]
+  MOV AL, 0x0C
+  CALL DrawPixel
   RET
 
 DrawSnake:
@@ -144,29 +159,35 @@ DrawSnake:
   RET
 
 ShiftArray:
-  MOV DX, [x_coord+4]
-  MOV [x_coord+6], DX
-  MOV DX, [x_coord+2]
-  MOV [x_coord+4], DX
-  MOV DX, [x_coord]
-  MOV [x_coord+2], DX
+  MOV BX, TOTAL_SEGMENTS
+  DEC BX
+  ADD BX, BX
+  .loop_begin
+   ADD BX, -2
+   MOV DX, [x_coord+BX]
+   MOV CX, [y_coord+BX]
+   ADD BX, 2
+   MOV [x_coord+BX], DX
+   MOV [y_coord+BX], CX
+   ADD BX, -2
+   CMP BX, 0x00
+   JNE .loop_begin
   MOV DX, [t1]
   MOV [x_coord], DX
-
-  MOV DX, [y_coord+4]
-  MOV [y_coord+6], DX
-  MOV DX, [y_coord+2]
-  MOV [y_coord+4], DX
-  MOV DX, [y_coord]
-  MOV [y_coord+2], DX
   MOV DX, [t2]
   MOV [y_coord], DX
+
   RET
 
 DrawPixel:
   MOV AH, 0x0C     ; Draw mode
   MOV BH, 0x00     ; Pg 0
   INT 0x10         ; Draw
+  RET
+
+RandomNumber:
+  RDTSC
+  AND EAX, 0x3F
   RET
 
 Debug:
