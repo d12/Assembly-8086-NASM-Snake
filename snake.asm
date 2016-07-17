@@ -4,15 +4,14 @@
 TOTAL_SEGMENTS equ 0x09
 
 section .bss
-  x_coord   RESW 9 ; [x_coord] is the head, [x_coord+2] is the next cell, etc.
-  y_coord   RESW 9 ; Same here
+  x_coord   RESW TOTAL_SEGMENTS ; [x_coord] is the head, [x_coord+2] is the next cell, etc.
+  y_coord   RESW TOTAL_SEGMENTS ; Same here
   t1        RESB 2
   t2        RESB 2
   enabled   RESB 2
   x_apple   RESB 2
   y_apple   RESB 2
   
-
 section  .text
   global_start 
 
@@ -65,7 +64,7 @@ SetInitialCoords:
   MOV AX, 0x00
   MOV [t1]       , AX
   MOV [t2]       , AX
-  MOV AX, TOTAL_SEGMENTS
+  MOV AX, 2
   MOV [enabled]  , AX
 
   CALL RandomNumber
@@ -74,7 +73,7 @@ SetInitialCoords:
   MOV [y_apple], AX
   RET
 
-ListenForInput:  ;Repeatedly check for keyboard input, print if available
+ListenForInput:  ;Repeatedly check for keyboard input
   MOV AH, 0x00 ; Set AH to 0 to lock when listening for key
   MOV AL, 0x00 ; Set last key to 0
   INT 0x16   ; Listen for a keypress, save to register AL
@@ -126,9 +125,29 @@ InterpretKeypress:
   .after_control_handle
   MOV [t1], AX
   MOV [t2], BX
+  CALL CheckAppleCollision
   CALL ShiftArray
   CALL DrawSnake
   CALL DrawApple
+  RET
+
+CheckAppleCollision:
+  CMP AX, [x_apple]
+  JNE .no_collision
+
+  CMP BX, [y_apple]
+  JNE .no_collision
+  
+  MOV AX, [enabled]
+  INC AX
+  MOV [enabled], AX
+  
+  CALL RandomNumber
+  MOV [x_apple], AX
+  CALL RandomNumber
+  MOV [y_apple], AX
+
+  .no_collision
   RET
 
 DrawApple:
@@ -176,7 +195,6 @@ ShiftArray:
   MOV [x_coord], DX
   MOV DX, [t2]
   MOV [y_coord], DX
-
   RET
 
 DrawPixel:
@@ -187,7 +205,7 @@ DrawPixel:
 
 RandomNumber:
   RDTSC
-  AND EAX, 0x3F
+  AND EAX, 0xF
   RET
 
 Debug:
